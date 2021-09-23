@@ -13,6 +13,7 @@ phases:
       commands:
         - TAG="$REPOSITORY_NAME.$REPOSITORY_BRANCH.$ENVIRONMENT_NAME.$(date +%Y-%m-%d.%H.%M.%S).$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | head -c 8)"
         - sed -i 's@CONTAINER_IMAGE@'"$REPOSITORY_URI:$TAG"'@' hello-k8s-2.yml
+        - sed -i 's@CONTAINER_IMAGE@'"$REPOSITORY_URI:$TAG"'@' hello-k8s.yml
         - $(aws ecr get-login --no-include-email)
         - export KUBECONFIG=$HOME/.kube/config
   build:
@@ -30,7 +31,7 @@ phases:
       - aws eks update-kubeconfig --name $EKS_CLUSTER_NAME
       - export SERVICE_WEIGHT=$(kubectl get ingress ingress -o yaml | grep targetGroups | head -n 1 | jq .forwardConfig.targetGroups[0].weight)
       - echo "SERVICE_WEIGHT:$SERVICE_WEIGHT"
-      - export SERVICE_NAME=$([ "$SERVICE_WEIGHT" == 0 ] && echo "hello-k8s" || echo "hello-k8s-2")
+      - export SERVICE_NAME=$([ "$SERVICE_WEIGHT" -eq 0 ] && echo "hello-k8s" || echo "hello-k8s-2")
       - echo "SERVICE_NAME:$SERVICE_NAME"
       - kubectl apply -f ${SERVICE_NAME}.yml
       - printf '[{"name":"${SERVICE_NAME}","imageUri":"%s"}]' $REPOSITORY_URI:$TAG > build.json
