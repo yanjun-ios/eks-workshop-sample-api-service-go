@@ -28,7 +28,9 @@ phases:
       - export AWS_SESSION_TOKEN="$(echo ${CREDENTIALS} | jq -r '.Credentials.SessionToken')"
       - export AWS_EXPIRATION=$(echo ${CREDENTIALS} | jq -r '.Credentials.Expiration')
       - aws eks update-kubeconfig --name $EKS_CLUSTER_NAME
-      - kubectl apply -f hello-k8s-2.yml
-      - printf '[{"name":"hello-k8s","imageUri":"%s"}]' $REPOSITORY_URI:$TAG > build.json
+      - export SERVICE_WEIGHT=$(kubectl get ingress ingress -o yaml | grep targetGroups | head -n 1 | jq .forwardConfig.targetGroups[0].weight)
+      - export SERVICE_NAME=$([ "$SERVICE_WEIGHT" == 0 ] && echo "hello-k8s" || echo "hello-k8s-2")
+      - kubectl apply -f ${SERVICE_NAME}.yml
+      - printf '[{"name":"${SERVICE_NAME}","imageUri":"%s"}]' $REPOSITORY_URI:$TAG > build.json
 artifacts:
   files: build.json
